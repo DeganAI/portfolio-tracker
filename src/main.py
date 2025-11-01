@@ -85,6 +85,8 @@ else:
     logger.info("x402 payment verification enabled")
 
 logger.info(f"Portfolio tracker initialized with {len(w3_instances)} chains")
+logger.info(f"PORT from environment: {PORT}")
+logger.info(f"BASE_URL: {BASE_URL}")
 
 # x402 Payment Middleware
 payment_address = PAYMENT_ADDRESS
