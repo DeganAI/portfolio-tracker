@@ -65,18 +65,8 @@ RPC_URLS = {
     43114: os.getenv("AVALANCHE_RPC_URL", "https://api.avax.network/ext/bc/C/rpc"),
 }
 
-# Initialize Web3 instances
-w3_instances = {}
-for chain_id, rpc_url in RPC_URLS.items():
-    if rpc_url:
-        try:
-            w3_instances[chain_id] = Web3(Web3.HTTPProvider(rpc_url))
-            logger.info(f"Initialized Web3 for chain {chain_id}")
-        except Exception as e:
-            logger.error(f"Failed to initialize Web3 for chain {chain_id}: {e}")
-
-# Initialize services
-balance_fetcher = BalanceFetcher(w3_instances)
+# Initialize services with RPC URLs (lazy loading)
+balance_fetcher = BalanceFetcher(RPC_URLS)
 portfolio_aggregator = PortfolioAggregator(PRICE_ORACLE_URL)
 
 if FREE_MODE:
@@ -84,7 +74,7 @@ if FREE_MODE:
 else:
     logger.info("x402 payment verification enabled")
 
-logger.info(f"Portfolio tracker initialized with {len(w3_instances)} chains")
+logger.info(f"Portfolio tracker initialized with {len(RPC_URLS)} chains")
 logger.info(f"PORT from environment: {PORT}")
 logger.info(f"BASE_URL: {BASE_URL}")
 
@@ -150,8 +140,8 @@ async def health():
         "service": "portfolio-tracker",
         "version": "1.0.0",
         "free_mode": FREE_MODE,
-        "supported_chains": len(w3_instances),
-        "chain_ids": list(w3_instances.keys())
+        "supported_chains": len(RPC_URLS),
+        "chain_ids": list(RPC_URLS.keys())
     }
 
 
@@ -189,12 +179,12 @@ async def get_portfolio(request: PortfolioRequest):
         logger.info(f"Fetching portfolio for {request.wallet_address}")
 
         # Determine which chains to check
-        chains_to_check = request.chains if request.chains else list(w3_instances.keys())
+        chains_to_check = request.chains if request.chains else list(RPC_URLS.keys())
 
         # Fetch balances across all chains in parallel
         tasks = []
         for chain_id in chains_to_check:
-            if chain_id in w3_instances:
+            if chain_id in RPC_URLS:
                 task = balance_fetcher.get_wallet_tokens(
                     request.wallet_address,
                     chain_id,

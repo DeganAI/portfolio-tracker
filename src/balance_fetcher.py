@@ -55,14 +55,33 @@ class BalanceFetcher:
         43114: {"name": "Avalanche", "symbol": "AVAX", "decimals": 18},
     }
 
-    def __init__(self, w3_instances: Dict[int, Web3]):
+    def __init__(self, rpc_urls: Dict[int, str]):
         """
-        Initialize with Web3 instances
+        Initialize with RPC URLs (lazy loading)
 
         Args:
-            w3_instances: Dict mapping chain_id to Web3 instance
+            rpc_urls: Dict mapping chain_id to RPC URL
         """
-        self.w3_instances = w3_instances
+        self.rpc_urls = rpc_urls
+        self.w3_instances = {}  # Cache for lazy-loaded instances
+
+    def _get_w3(self, chain_id: int) -> Optional[Web3]:
+        """Get or create Web3 instance for chain (lazy loading)"""
+        if chain_id in self.w3_instances:
+            return self.w3_instances[chain_id]
+
+        rpc_url = self.rpc_urls.get(chain_id)
+        if not rpc_url:
+            return None
+
+        try:
+            w3 = Web3(Web3.HTTPProvider(rpc_url))
+            self.w3_instances[chain_id] = w3
+            logger.info(f"Initialized Web3 for chain {chain_id}")
+            return w3
+        except Exception as e:
+            logger.error(f"Failed to initialize Web3 for chain {chain_id}: {e}")
+            return None
 
     async def get_native_balance(
         self,
@@ -80,11 +99,11 @@ class BalanceFetcher:
             Dict with balance data
         """
         try:
-            w3 = self.w3_instances.get(chain_id)
+            w3 = self._get_w3(chain_id)
             if not w3:
                 return {
                     "chain_id": chain_id,
-                    "error": f"Chain {chain_id} not supported"
+                    "error": f"Chain {chain_id} not supported or failed to initialize"
                 }
 
             chain_info = self.CHAIN_CONFIG.get(chain_id, {})
@@ -132,11 +151,11 @@ class BalanceFetcher:
             Dict with token balance data
         """
         try:
-            w3 = self.w3_instances.get(chain_id)
+            w3 = self._get_w3(chain_id)
             if not w3:
                 return {
                     "chain_id": chain_id,
-                    "error": f"Chain {chain_id} not supported"
+                    "error": f"Chain {chain_id} not supported or failed to initialize"
                 }
 
             # Normalize addresses
