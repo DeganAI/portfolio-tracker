@@ -9,7 +9,8 @@ import asyncio
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -132,6 +133,87 @@ class PortfolioResponse(BaseModel):
 
 
 # API Endpoints
+@app.get("/", response_class=HTMLResponse)
+async def landing_page():
+    """Landing page with metadata"""
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Wallet Portfolio Tracker</title>
+        <meta property="og:title" content="Wallet Portfolio Tracker">
+        <meta property="og:description" content="Multi-chain wallet portfolio aggregation with real-time valuations via x402 micropayments">
+        <meta property="og:image" content="https://portfolio-tracker-production-5c56.up.railway.app/favicon.ico">
+        <link rel="icon" href="/favicon.ico" type="image/svg+xml">
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+            .container {
+                background: white;
+                padding: 40px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 20px;
+            }
+            p {
+                color: #666;
+                line-height: 1.6;
+            }
+            .emoji {
+                font-size: 48px;
+                margin-bottom: 20px;
+            }
+            .links {
+                margin-top: 30px;
+            }
+            a {
+                color: #0066cc;
+                text-decoration: none;
+                margin-right: 20px;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="emoji">💼</div>
+            <h1>Wallet Portfolio Tracker</h1>
+            <p>Multi-chain wallet portfolio aggregation with real-time valuations via x402 micropayments.</p>
+            <p>Track your entire crypto portfolio across 7+ chains with automatic price fetching and comprehensive breakdowns.</p>
+            <div class="links">
+                <a href="/docs">API Documentation</a>
+                <a href="/.well-known/agent.json">Agent Metadata</a>
+                <a href="/.well-known/x402">x402 Metadata</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Favicon endpoint returning SVG with emoji"""
+    svg = """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <text y="85" font-size="90">💼</text>
+    </svg>
+    """
+    return Response(content=svg, media_type="image/svg+xml")
+
+
 @app.get("/health")
 async def health():
     """Health check endpoint"""
@@ -143,6 +225,50 @@ async def health():
         "supported_chains": len(RPC_URLS),
         "chain_ids": list(RPC_URLS.keys())
     }
+
+
+@app.get("/entrypoints/portfolio-tracker/invoke")
+async def get_portfolio_metadata():
+    """Returns HTTP 402 with x402 metadata for portfolio tracker entrypoint"""
+    return Response(
+        status_code=402,
+        content='{"error": "Payment Required"}',
+        media_type="application/json",
+        headers={
+            "X-402-Accepts": "base:USDC",
+            "X-402-Price": "50000",
+            "X-402-Pay-To": payment_address,
+            "X-402-Asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "X-402-Output-Schema": str({
+                "input": {
+                    "type": "http",
+                    "method": "POST",
+                    "bodyType": "json",
+                    "bodyFields": {
+                        "wallet_address": {
+                            "type": "string",
+                            "required": True,
+                            "description": "Wallet address to track"
+                        },
+                        "chains": {
+                            "type": "array",
+                            "required": False,
+                            "description": "Specific chains to check (default: all supported chains)"
+                        },
+                        "tokens": {
+                            "type": "array",
+                            "required": False,
+                            "description": "Specific token addresses to check (optional)"
+                        }
+                    }
+                },
+                "output": {
+                    "type": "object",
+                    "description": "Comprehensive wallet portfolio with total value, breakdowns by chain and token"
+                }
+            })
+        }
+    )
 
 
 @app.post(
