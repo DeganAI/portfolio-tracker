@@ -228,47 +228,57 @@ async def health():
 
 
 @app.get("/entrypoints/portfolio-tracker/invoke")
+@app.head("/entrypoints/portfolio-tracker/invoke")
 async def get_portfolio_metadata():
     """Returns HTTP 402 with x402 metadata for portfolio tracker entrypoint"""
-    return Response(
-        status_code=402,
-        content='{"error": "Payment Required"}',
-        media_type="application/json",
-        headers={
-            "X-402-Accepts": "base:USDC",
-            "X-402-Price": "50000",
-            "X-402-Pay-To": payment_address,
-            "X-402-Asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            "X-402-Output-Schema": str({
-                "input": {
-                    "type": "http",
-                    "method": "POST",
-                    "bodyType": "json",
-                    "bodyFields": {
-                        "wallet_address": {
-                            "type": "string",
-                            "required": True,
-                            "description": "Wallet address to track"
-                        },
-                        "chains": {
-                            "type": "array",
-                            "required": False,
-                            "description": "Specific chains to check (default: all supported chains)"
-                        },
-                        "tokens": {
-                            "type": "array",
-                            "required": False,
-                            "description": "Specific token addresses to check (optional)"
+    from fastapi.responses import JSONResponse
+
+    metadata = {
+        "x402Version": 1,
+        "accepts": [
+            {
+                "scheme": "exact",
+                "network": "base",
+                "maxAmountRequired": "50000",  # 0.05 USDC (6 decimals)
+                "resource": f"{base_url}/entrypoints/portfolio-tracker/invoke",
+                "description": "Multi-chain wallet portfolio aggregation with real-time valuations",
+                "mimeType": "application/json",
+                "payTo": payment_address,
+                "maxTimeoutSeconds": 30,
+                "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  # USDC on Base
+                "outputSchema": {
+                    "input": {
+                        "type": "http",
+                        "method": "POST",
+                        "bodyType": "json",
+                        "bodyFields": {
+                            "wallet_address": {
+                                "type": "string",
+                                "required": True,
+                                "description": "Wallet address to track"
+                            },
+                            "chains": {
+                                "type": "array",
+                                "required": False,
+                                "description": "Specific chains to check (default: all supported chains)"
+                            },
+                            "tokens": {
+                                "type": "array",
+                                "required": False,
+                                "description": "Specific token addresses to check (optional)"
+                            }
                         }
+                    },
+                    "output": {
+                        "type": "object",
+                        "description": "Comprehensive wallet portfolio with total value, breakdowns by chain and token"
                     }
-                },
-                "output": {
-                    "type": "object",
-                    "description": "Comprehensive wallet portfolio with total value, breakdowns by chain and token"
                 }
-            })
-        }
-    )
+            }
+        ]
+    }
+
+    return JSONResponse(content=metadata, status_code=402)
 
 
 @app.post(
