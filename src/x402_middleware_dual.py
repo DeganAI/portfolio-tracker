@@ -160,6 +160,34 @@ class X402Middleware(BaseHTTPMiddleware):
                     "payTo": self.payment_address,
                     "maxTimeoutSeconds": 30,
                     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  # USDC on Base
+                    "outputSchema": {
+                        "input": {
+                            "type": "http",
+                            "method": "POST",
+                            "bodyType": "json",
+                            "bodyFields": {
+                                "wallet_address": {
+                                    "type": "string",
+                                    "required": True,
+                                    "description": "Wallet address to track"
+                                },
+                                "chains": {
+                                    "type": "array",
+                                    "required": False,
+                                    "description": "Specific chains to check (default: all supported chains)"
+                                },
+                                "tokens": {
+                                    "type": "array",
+                                    "required": False,
+                                    "description": "Specific token addresses to check (optional)"
+                                }
+                            }
+                        },
+                        "output": {
+                            "type": "object",
+                            "description": "Comprehensive wallet portfolio with total value, breakdowns by chain and token"
+                        }
+                    }
                 }
             ]
         }
@@ -225,6 +253,34 @@ class X402Middleware(BaseHTTPMiddleware):
                         "payTo": self.payment_address,
                         "maxTimeoutSeconds": 30,
                         "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                        "outputSchema": {
+                            "input": {
+                                "type": "http",
+                                "method": "POST",
+                                "bodyType": "json",
+                                "bodyFields": {
+                                    "wallet_address": {
+                                        "type": "string",
+                                        "required": True,
+                                        "description": "Wallet address to track"
+                                    },
+                                    "chains": {
+                                        "type": "array",
+                                        "required": False,
+                                        "description": "Specific chains to check (default: all supported chains)"
+                                    },
+                                    "tokens": {
+                                        "type": "array",
+                                        "required": False,
+                                        "description": "Specific token addresses to check (optional)"
+                                    }
+                                }
+                            },
+                            "output": {
+                                "type": "object",
+                                "description": "Comprehensive wallet portfolio with total value, breakdowns by chain and token"
+                            }
+                        }
                     }]
                 }
             )
